@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation
+  name: Timer-Based Lighting Automation 2:40pm
   description: >
     Turns specified light(s) ON when a selected timer becomes active, and OFF when it goes idle.
     Starts the timer when any trigger entity matches a user-defined state (defaults to 'on').
