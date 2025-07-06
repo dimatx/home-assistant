@@ -2,8 +2,8 @@ blueprint:
   name: Timer-Driven Lighting Control (Flexible Triggers)
   description: >
     Turns specified light(s) ON when a timer starts, and OFF when the timer goes idle.
-    Starts the timer when a chosen entity changes to a user-defined state (supports any entity and value).
-    Allows extra conditions and optional service calls after actions.
+    Starts the timer when any selected entity changes to a specific state (e.g. motion turns on, door opens).
+    Allows extra conditions to control whether light changes happen.
   domain: automation
   input:
     timer_entity:
@@ -51,14 +51,6 @@ blueprint:
       selector:
         condition: {}
 
-    post_action_service:
-      name: Optional Service After Action
-      description: >
-        Optional service to call after light on/off (e.g. notification)
-      default: {}
-      selector:
-        service: {}
-
 mode: restart
 
 trigger:
@@ -90,12 +82,6 @@ action:
         sequence:
           - service: light.turn_on
             target: !input lights
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ not (input.post_action_service is none) }}"
-                sequence:
-                  - service: !input post_action_service
 
       # Light OFF when timer ends (if conditions pass)
       - conditions:
@@ -106,14 +92,8 @@ action:
         sequence:
           - service: light.turn_off
             target: !input lights
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ not (input.post_action_service is none) }}"
-                sequence:
-                  - service: !input post_action_service
 
-      # Start the timer on entity match
+      # Start the timer on matching entity trigger
       - conditions:
           - condition: trigger
             id: entity_trigger
