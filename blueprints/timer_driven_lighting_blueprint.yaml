@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.06.14.59)
+  name: Timer-Based Lighting Automation (v2025.07.06.15.11)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -9,7 +9,7 @@ blueprint:
   domain: automation
   input:
     timer_entity:
-      name: Timer (e.g.ntity (required)
+      name: Timer entity (required)
       description: Timer that controls the light state
       selector:
         entity:
