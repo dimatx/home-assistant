@@ -1,0 +1,127 @@
+blueprint:
+  name: Timer-Driven Lighting Control (Flexible Triggers)
+  description: >
+    Turns specified light(s) ON when a timer starts, and OFF when the timer goes idle.
+    Starts the timer when a chosen entity changes to a user-defined state (supports any entity and value).
+    Allows extra conditions and optional service calls after actions.
+  domain: automation
+  input:
+    timer_entity:
+      name: Timer Entity
+      description: Timer used to control lighting
+      selector:
+        entity:
+          domain: timer
+
+    lights:
+      name: Light(s) to Control
+      description: Light(s) to turn on when timer starts and off when it goes idle
+      selector:
+        target:
+          entity:
+            domain: light
+
+    trigger_entities:
+      name: Trigger Entity or Entities
+      description: Entity/entities that should start the timer when they match a given state
+      default: []
+      selector:
+        entity:
+          multiple: true
+
+    trigger_state:
+      name: Trigger State
+      description: State value that should trigger the timer start (e.g., 'on', 'open', 'home')
+      default: "on"
+      selector:
+        text:
+
+    timer_duration:
+      name: Timer Duration
+      description: >
+        How long to keep the light on after the trigger. The timer is restarted on each valid trigger.
+      default: "00:02:00"
+      selector:
+        duration:
+
+    extra_conditions:
+      name: Extra Conditions (optional)
+      description: All must be true for the light action to run
+      default: []
+      selector:
+        condition: {}
+
+    post_action_service:
+      name: Optional Service After Action
+      description: >
+        Optional service to call after light on/off (e.g. notification)
+      default: {}
+      selector:
+        service: {}
+
+mode: restart
+
+trigger:
+  - platform: state
+    entity_id: !input timer_entity
+    from: idle
+    to: active
+    id: timer_started
+
+  - platform: state
+    entity_id: !input timer_entity
+    to: idle
+    id: timer_idle
+
+  - platform: state
+    entity_id: !input trigger_entities
+    id: entity_trigger
+
+condition: []
+
+action:
+  - choose:
+      # Light ON when timer starts (if conditions pass)
+      - conditions:
+          - condition: trigger
+            id: timer_started
+          - condition: and
+            conditions: !input extra_conditions
+        sequence:
+          - service: light.turn_on
+            target: !input lights
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not (input.post_action_service is none) }}"
+                sequence:
+                  - service: !input post_action_service
+
+      # Light OFF when timer ends (if conditions pass)
+      - conditions:
+          - condition: trigger
+            id: timer_idle
+          - condition: and
+            conditions: !input extra_conditions
+        sequence:
+          - service: light.turn_off
+            target: !input lights
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not (input.post_action_service is none) }}"
+                sequence:
+                  - service: !input post_action_service
+
+      # Start the timer on entity match
+      - conditions:
+          - condition: trigger
+            id: entity_trigger
+          - condition: template
+            value_template: >
+              {{ trigger.to_state.state == (input.trigger_state | string) }}
+        sequence:
+          - service: timer.start
+            data:
+              entity_id: !input timer_entity
+              duration: !input timer_duration
