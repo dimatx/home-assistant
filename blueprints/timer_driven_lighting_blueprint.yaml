@@ -1,6 +1,6 @@
 blueprint:
   name: Timer-Based Lighting Automation
-  version: '2025.07.06.14.55'
+  version: '2025.07.06.14.59'
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -10,14 +10,14 @@ blueprint:
   domain: automation
   input:
     timer_entity:
-      name: Timer Entity
+      name: Timer (e.g.ntity (required)
       description: Timer that controls the light state
       selector:
         entity:
           domain: timer
 
     lights:
-      name: Light(s) to Control (required)
+      name: Light(s) to control (required)
       description: The light(s) to turn on when timer is active and off when idle
       selector:
         target:
@@ -25,41 +25,41 @@ blueprint:
             domain: light
 
     trigger_entities:
-      name: Trigger Entities (required)
+      name: Trigger entities (required)
       description: Entities that will start the timer when they change to a matching state
       selector:
         entity:
           multiple: true
 
     trigger_states:
-      name: Trigger States (required)
+      name: Trigger states (required)
       description: Comma-separated states (e.g. 'on, open, home') that will start the timer
       default: "on"
       selector:
         text:
 
     timer_duration:
-      name: Timer Duration (optional)
+      name: Timer duration (optional)
       description: How long the timer should run when triggered. Defaults to the timer default.
       selector:
         duration:
 
     extra_conditions:
-      name: Global Conditions (optional)
+      name: Global conditions (optional)
       description: These must be true for either ON or OFF action to run
       default: []
       selector:
         condition: {}
 
     on_conditions:
-      name: Light ON Conditions (optional)
+      name: Light ON conditions (optional)
       description: These must be true for the ON action (when timer goes active)
       default: []
       selector:
         condition: {}
 
     off_conditions:
-      name: Light OFF Conditions (optional)
+      name: Light OFF conditions (optional)
       description: These must be true for the OFF action (when timer goes idle)
       default: []
       selector:
