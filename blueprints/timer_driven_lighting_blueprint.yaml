@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Controller
+  name: Timer-Based Lighting Automation
   description: >
     Turns specified light(s) ON when a selected timer becomes active, and OFF when it goes idle.
     Starts the timer when any trigger entity matches a user-defined state (defaults to 'on').
@@ -65,6 +65,9 @@ blueprint:
 
 mode: restart
 
+variables:
+  trigger_states: !input trigger_states
+
 trigger:
   - platform: state
     entity_id: !input timer_entity
@@ -90,7 +93,7 @@ action:
             id: trigger_entity_changed
           - condition: template
             value_template: >
-              {% set states = input.trigger_states.split(',') | map('trim') | list %}
+              {% set states = trigger_states.split(',') | map('trim') | list %}
               {{ trigger.to_state.state in states }}
         sequence:
           - service: timer.start
