@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Driven Lighting Control (Flexible Triggers)
+  name: Timer-driven Lighting Controller
   description: >
     Turns specified light(s) ON when a timer starts, and OFF when the timer goes idle.
     Starts the timer when any selected entity changes to a specific state (e.g. motion turns on, door opens).
