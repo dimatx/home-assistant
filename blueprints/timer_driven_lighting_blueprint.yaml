@@ -38,8 +38,9 @@ blueprint:
         text:
 
     timer_duration:
-      name: Timer duration (optional)
-      description: How long the timer should run when triggered. Defaults to the timer default.
+      name: Timer Duration (optional)
+      description: Leave blank to use the timer's default duration
+      default: 
       selector:
         duration:
 
@@ -90,18 +91,17 @@ condition: []
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            id: trigger_entity_changed
           - condition: template
-            value_template: >
-              {% set states = trigger_states.split(',') | map('trim') | list %}
-              {{ trigger.to_state.state in states }}
+            value_template: "{{ timer_duration is not none }}"
         sequence:
           - service: timer.start
             data:
               entity_id: !input timer_entity
               duration: !input timer_duration
-
+    default:
+      - service: timer.start
+        data:
+          entity_id: !input timer_entity
       - conditions:
           - condition: trigger
             id: timer_started
