@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.06.18.31)
+  name: Timer-Based Lighting Automation (v2025.07.06.18.37)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -37,12 +37,11 @@ blueprint:
       selector:
         text:
 
-    timer_duration:
-      name: Timer Duration (optional)
-      description: Leave blank to use the timer's default duration
-      default: 
-      selector:
-        duration:
+    # timer_duration:
+    #   name: Timer duration (optional)
+    #   description: How long the timer should run when triggered. Defaults to the timer default.
+    #   selector:
+    #     duration:
 
     extra_conditions:
       name: Global conditions (optional)
@@ -91,17 +90,18 @@ condition: []
 action:
   - choose:
       - conditions:
+          - condition: trigger
+            id: trigger_entity_changed
           - condition: template
-            value_template: "{{ timer_duration is not none }}"
+            value_template: >
+              {% set states = trigger_states.split(',') | map('trim') | list %}
+              {{ trigger.to_state.state in states }}
         sequence:
           - service: timer.start
             data:
               entity_id: !input timer_entity
-              duration: !input timer_duration
-    default:
-      - service: timer.start
-        data:
-          entity_id: !input timer_entity
+              # duration: !input timer_duration
+
       - conditions:
           - condition: trigger
             id: timer_started
