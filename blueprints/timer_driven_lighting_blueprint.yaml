@@ -1,5 +1,8 @@
 blueprint:
-  name: Timer-Based Lighting Automation 2:40pm
+  name: Timer-Based Lighting Automation
+  version: '2025-07-06-14-55'
+  author: Dima Tokar
+  source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
     Turns specified light(s) ON when a selected timer becomes active, and OFF when it goes idle.
     Starts the timer when any trigger entity matches a user-defined state (defaults to 'on').
@@ -14,7 +17,7 @@ blueprint:
           domain: timer
 
     lights:
-      name: Light(s) to Control
+      name: Light(s) to Control (required)
       description: The light(s) to turn on when timer is active and off when idle
       selector:
         target:
@@ -22,23 +25,22 @@ blueprint:
             domain: light
 
     trigger_entities:
-      name: Trigger Entities
+      name: Trigger Entities (required)
       description: Entities that will start the timer when they change to a matching state
       selector:
         entity:
           multiple: true
 
     trigger_states:
-      name: Trigger States
+      name: Trigger States (required)
       description: Comma-separated states (e.g. 'on, open, home') that will start the timer
       default: "on"
       selector:
         text:
 
     timer_duration:
-      name: Timer Duration
-      description: How long the timer should run when triggered
-      default: "00:02:00"
+      name: Timer Duration (optional)
+      description: How long the timer should run when triggered. Defaults to the timer default.
       selector:
         duration:
 
@@ -63,7 +65,7 @@ blueprint:
       selector:
         condition: {}
 
-mode: restart
+mode: parallel
 
 variables:
   trigger_states: !input trigger_states
