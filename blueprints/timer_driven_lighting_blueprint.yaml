@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.07.09.39)
+  name: Timer-Based Lighting Automation (v2025.07.07.09.43)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
