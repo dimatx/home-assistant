@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.06.18.37)
+  name: Timer-Based Lighting Automation (v2025.07.07.09.15)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -8,6 +8,36 @@ blueprint:
     Optional duration, global conditions, and per-action conditions supported.
   domain: automation
   input:
+    retry_light_off_check:
+      name: Retry Light Off Verification
+      description: >
+        If enabled, the automation will retry turning off the lights after the timer goes idle
+        at the given delays — but only if the lights are still on.
+      default: false
+      selector:
+        boolean:
+
+    retry_delay_1:
+      name: Retry Delay 1 (minutes)
+      description: First delay after timer goes idle
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: minutes
+          mode: slider
+
+    retry_delay_2:
+      name: Retry Delay 2 (minutes)
+      description: Second delay (total minutes from idle)
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: minutes
+          mode: slider
     timer_entity:
       name: Timer entity (required)
       description: Timer that controls the light state
@@ -64,7 +94,7 @@ blueprint:
       selector:
         condition: {}
 
-mode: parallel
+mode: restart
 
 variables:
   trigger_states: !input trigger_states
@@ -88,6 +118,27 @@ trigger:
 condition: []
 
 action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: '{{ retry_light_off_check }}'
+        sequence:
+          - delay:
+              minutes: !input retry_delay_1
+          - condition: state
+            entity_id: !input lights
+            state: 'on'
+          - service: light.turn_off
+            target: !input lights
+
+          - delay:
+              minutes: >-
+                {{ (int(!input.retry_delay_2) - int(!input.retry_delay_1)) if int(!input.retry_delay_2) > int(!input.retry_delay_1) else 0 }}
+          - condition: state
+            entity_id: !input lights
+            state: 'on'
+          - service: light.turn_off
+            target: !input lights
   - choose:
       - conditions:
           - condition: trigger
