@@ -108,10 +108,11 @@ blueprint:
 mode: restart
 
 variables:
+  trigger_states_input: !input trigger_states
   trigger_states_list: >
-    {{ (trigger_states | string).split(',') | map('trim') | list }}
-  timer_duration_input: !input timer_duration
-  enable_retry_input: !input enable_retry
+    {{ (trigger_states_input | string).split(',') | map('trim') | list }}
+  timer_duration_value: !input timer_duration
+  enable_retry_value: !input enable_retry
   first_retry_minutes: !input first_retry_delay
   second_retry_minutes: !input second_retry_delay
 
@@ -131,6 +132,10 @@ trigger:
     entity_id: !input trigger_entities
     id: entity_triggered
 
+condition:
+  - condition: and
+    conditions: !input global_conditions
+
 action:
   - choose:
     # === HANDLE TRIGGER ENTITY STATE CHANGES ===
@@ -140,29 +145,26 @@ action:
         - condition: template
           value_template: >
             {{ trigger.to_state.state in trigger_states_list }}
-        - condition: and
-          conditions: !input global_conditions
       sequence:
-        - if:
-            - condition: template
-              value_template: "{{ timer_duration_input != '' and timer_duration_input != none }}"
-          then:
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: >
+                    {{ timer_duration_value != '' and timer_duration_value != none }}
+              sequence:
+                - service: timer.start
+                  data:
+                    entity_id: !input timer_entity
+                    duration: !input timer_duration
+          default:
             - service: timer.start
-              target:
-                entity_id: !input timer_entity
               data:
-                duration: !input timer_duration
-          else:
-            - service: timer.start
-              target:
                 entity_id: !input timer_entity
 
     # === HANDLE TIMER BECOMING ACTIVE (TURN LIGHTS ON) ===
-    - conditions:
+    -       conditions:
         - condition: trigger
           id: timer_active
-        - condition: and
-          conditions: !input global_conditions
         - condition: and
           conditions: !input turn_on_conditions
       sequence:
@@ -170,11 +172,9 @@ action:
           target: !input lights
 
     # === HANDLE TIMER BECOMING IDLE (TURN LIGHTS OFF) ===
-    - conditions:
+    -       conditions:
         - condition: trigger
           id: timer_idle
-        - condition: and
-          conditions: !input global_conditions
         - condition: and
           conditions: !input turn_off_conditions
       sequence:
@@ -184,7 +184,7 @@ action:
         # === RETRY LOGIC ===
         - if:
             - condition: template
-              value_template: "{{ enable_retry_input }}"
+              value_template: "{{ enable_retry_value }}"
           then:
             - sequence:
                 # First retry
@@ -193,8 +193,12 @@ action:
                 - service: light.turn_off
                   target: !input lights
                 
-                # Second retry
-                - delay:
-                    minutes: "{{ second_retry_minutes - first_retry_minutes }}"
-                - service: light.turn_off
-                  target: !input lights
+                # Second retry (only if second delay is greater than first)
+                - if:
+                    - condition: template
+                      value_template: "{{ second_retry_minutes > first_retry_minutes }}"
+                  then:
+                    - delay:
+                        minutes: "{{ second_retry_minutes - first_retry_minutes }}"
+                    - service: light.turn_off
+                      target: !input lights
