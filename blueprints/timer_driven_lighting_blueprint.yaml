@@ -143,15 +143,19 @@ action:
         - condition: and
           conditions: !input global_conditions
       sequence:
-        - service: timer.start
-          target:
-            entity_id: !input timer_entity
-          data: >
-            {% if timer_duration_input %}
-              {{ {'duration': timer_duration_input} }}
-            {% else %}
-              {{}}
-            {% endif %}
+        - if:
+            - condition: template
+              value_template: "{{ timer_duration_input != '' and timer_duration_input != none }}"
+          then:
+            - service: timer.start
+              target:
+                entity_id: !input timer_entity
+              data:
+                duration: !input timer_duration
+          else:
+            - service: timer.start
+              target:
+                entity_id: !input timer_entity
 
     # === HANDLE TIMER BECOMING ACTIVE (TURN LIGHTS ON) ===
     - conditions:
@@ -182,26 +186,15 @@ action:
             - condition: template
               value_template: "{{ enable_retry_input }}"
           then:
-            # First retry
-            - delay:
-                minutes: "{{ first_retry_minutes }}"
-            - if:
-                - condition: template
-                  value_template: >
-                    {% set lights = expand(lights) %}
-                    {{ lights | selectattr('state', 'eq', 'on') | list | count > 0 }}
-              then:
+            - sequence:
+                # First retry
+                - delay:
+                    minutes: "{{ first_retry_minutes }}"
                 - service: light.turn_off
                   target: !input lights
                 
                 # Second retry
                 - delay:
                     minutes: "{{ second_retry_minutes - first_retry_minutes }}"
-                - if:
-                    - condition: template
-                      value_template: >
-                        {% set lights = expand(lights) %}
-                        {{ lights | selectattr('state', 'eq', 'on') | list | count > 0 }}
-                  then:
-                    - service: light.turn_off
-                      target: !input lights
+                - service: light.turn_off
+                  target: !input lights
