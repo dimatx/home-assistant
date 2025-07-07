@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.07.10.41)
+  name: Timer-Based Lighting Automation (v2025.07.07.11.17)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -46,42 +46,53 @@ blueprint:
           type: text
 
     # === OPTIONAL SETTINGS ===
-    timer_duration:
-      name: Timer Duration (Optional)
-      description: Override the timer's default duration. Leave empty to use timer's configured duration.
-      default: ""
-      selector:
-        duration:
+    timer_duration_section:
+      name: Timer Duration Settings
+      icon: mdi:timer-outline
+      description: Configure the duration for the timer.
+      collapsed: true # Collapsed by default
+      input:
+        timer_duration:
+          name: Timer Duration (Optional)
+          description: Override the timer's default duration. Leave empty to use timer's configured duration.
+          default: ""
+          selector:
+            duration:
 
-    # === RETRY SETTINGS ===
-    enable_retry:
-      name: Enable Light Off Retry
-      description: Automatically retry turning off lights if they're still on after the timer expires
-      default: false
-      selector:
-        boolean:
+    retry_settings_section:
+      name: Light Off Retry Settings
+      icon: mdi:sync
+      description: Options for retrying to turn off lights in the event that the original operation fails.
+      collapsed: true # Collapsed by default
+      input:
+        enable_retry:
+          name: Enable Light Off Retry
+          description: Automatically retry turning off lights if they're still on after the timer expires
+          default: false
+          selector:
+            boolean:
 
-    first_retry_delay:
-      name: First Retry Delay
-      description: Minutes to wait before first retry attempt
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 30
-          unit_of_measurement: minutes
-          mode: slider
+        first_retry_delay:
+          name: First Retry Delay
+          description: Minutes to wait before first retry attempt
+          default: 3
+          selector:
+            number:
+              min: 1
+              max: 30
+              unit_of_measurement: minutes
+              mode: slider
 
-    second_retry_delay:
-      name: Second Retry Delay
-      description: Minutes to wait before second retry attempt (from timer idle)
-      default: 10
-      selector:
-        number:
-          min: 2
-          max: 60
-          unit_of_measurement: minutes
-          mode: slider
+        second_retry_delay:
+          name: Second Retry Delay
+          description: Minutes to wait before second retry attempt (from timer idle)
+          default: 10
+          selector:
+            number:
+              min: 2
+              max: 60
+              unit_of_measurement: minutes
+              mode: slider
 
     # === CONDITION SETTINGS ===
     global_conditions:
@@ -156,10 +167,10 @@ action:
                   data:
                     entity_id: !input timer_entity
                     duration: !input timer_duration
-          default:
-            - service: timer.start
-              data:
-                entity_id: !input timer_entity
+            default:
+              - service: timer.start
+                data:
+                  entity_id: !input timer_entity
 
     # === HANDLE TIMER BECOMING ACTIVE (TURN LIGHTS ON) ===
     - conditions:
