@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.07.11.17)
+  name: Timer-Based Lighting Automation (v2025.07.07.11.22)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -62,7 +62,7 @@ blueprint:
     retry_settings_section:
       name: Light Off Retry Settings
       icon: mdi:sync
-      description: Options for retrying to turn off lights in the event that the original operation fails.
+      description: Options for retrying to turn off lights if they remain on.
       collapsed: true # Collapsed by default
       input:
         enable_retry:
