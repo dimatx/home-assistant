@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.07.09.43)
+  name: Timer-Based Lighting Automation (v2025.07.07.10.13)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -124,7 +124,7 @@ action:
             value_template: '{{ retry_light_off_check }}'
         sequence:
           - delay:
-              minutes: !input retry_delay_1
+              minutes: {{ retry_delay_1 | int }}
           - condition: template
             value_template: >
               {% set lights = expand(inputs.lights | default([])) %}
@@ -133,11 +133,13 @@ action:
             target: !input lights
 
           - delay:
-              minutes: >-
-                {{ (int(!input.retry_delay_2) - int(!input.retry_delay_1)) if int(!input.retry_delay_2) > int(!input.retry_delay_1) else 0 }}
-          - condition: state
-            entity_id: !input lights
-            state: 'on'
+              seconds: >
+                {% set diff = retry_delay_2 | int - retry_delay_1 | int %}
+                {{ diff * 60 if diff > 0 else 0 }}
+          - condition: template
+            value_template: >
+              {% set lights = expand(inputs.lights | default([])) %}
+              {{ lights | selectattr('state', 'eq', 'on') | list | count > 0 }}
           - service: light.turn_off
             target: !input lights
   - choose:
