@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.07.10.34)
+  name: Timer-Based Lighting Automation (v2025.07.07.10.41)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   description: >
@@ -162,7 +162,7 @@ action:
                 entity_id: !input timer_entity
 
     # === HANDLE TIMER BECOMING ACTIVE (TURN LIGHTS ON) ===
-    -       conditions:
+    - conditions:
         - condition: trigger
           id: timer_active
         - condition: and
@@ -172,7 +172,7 @@ action:
           target: !input lights
 
     # === HANDLE TIMER BECOMING IDLE (TURN LIGHTS OFF) ===
-    -       conditions:
+    - conditions:
         - condition: trigger
           id: timer_idle
         - condition: and
