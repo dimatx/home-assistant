@@ -1,70 +1,61 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.12.24.20.17)
+  name: Timer-Based Lighting Automation (v2025.12.24.20.22)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
     min_version: 2025.1.0
   description: >
     Automatically controls lights based on a timer and trigger entities.
+    Supports targeting by Entities, Devices, Areas, and Labels.
   domain: automation
   input:
-    # === REQUIRED SETTINGS ===
     timer_entity:
       name: Timer Entity
-      description: The timer that controls when lights turn on/off
       selector:
         entity:
           domain: timer
-
     lights:
       name: Lights to Control
-      description: Light(s) that will be controlled by this automation
       selector:
         target:
           entity:
             domain: light
-
+          device:
+            filter:
+              - domain: light
+          area:
+            filter:
+              - domain: light
+          label:
+            filter:
+              - domain: light
     trigger_entities:
       name: Trigger Entities
-      description: Entities that start the timer (sensors, switches, etc.)
       selector:
         entity:
           multiple: true
-
     trigger_states:
       name: Trigger States
-      description: States that will start the timer (comma-separated, e.g., "on, open, home")
       default: "on"
       selector:
         text:
-          type: text
-
-    # === OPTIONAL SETTINGS ===
     timer_duration:
       name: Timer Duration (Optional)
-      description: Override the timer's default duration. Leave empty to use timer's configured duration.
       default: ""
       selector:
         duration:
-
-    # === CONDITION SETTINGS ===
     global_conditions:
       name: Global Conditions (Optional)
-      description: Conditions that must be true for any action to run
       default: []
       selector:
         condition:
-
     turn_on_conditions:
       name: Turn ON Conditions (Optional)
-      description: Additional conditions required to turn lights ON
       default: []
       selector:
         condition:
-
     turn_off_conditions:
       name: Turn OFF Conditions (Optional)
-      description: Additional conditions required to turn lights OFF
       default: []
       selector:
         condition:
@@ -73,8 +64,7 @@ mode: restart
 
 variables:
   trigger_states_input: !input trigger_states
-  trigger_states_list: >
-    {{ (trigger_states_input | string).split(',') | map('trim') | list }}
+  trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
   timer_duration_value: !input timer_duration
 
 trigger:
@@ -83,12 +73,10 @@ trigger:
     from: idle
     to: active
     id: timer_active
-
   - platform: state
     entity_id: !input timer_entity
     to: idle
     id: timer_idle
-
   - platform: state
     entity_id: !input trigger_entities
     id: entity_triggered
@@ -99,45 +87,32 @@ condition:
 
 action:
   - choose:
-    # === HANDLE TRIGGER ENTITY STATE CHANGES ===
-    - conditions:
-        - condition: trigger
-          id: entity_triggered
-        - condition: template
-          value_template: >
-            {{ trigger.to_state.state in trigger_states_list }}
-      sequence:
-        - choose:
-            - conditions:
-                - condition: template
-                  value_template: >
-                    {{ timer_duration_value != '' and timer_duration_value != none }}
-              sequence:
-                - action: timer.start
-                  data:
-                    entity_id: !input timer_entity
-                    duration: !input timer_duration
-          default:
-            - action: timer.start
-              data:
-                entity_id: !input timer_entity
+      - conditions:
+          - condition: trigger
+            id: entity_triggered
+          - condition: template
+            value_template: "{{ trigger.to_state.state in trigger_states_list }}"
+        sequence:
+          - action: timer.start
+            data:
+              entity_id: !input timer_entity
+              duration: >
+                {{ timer_duration_value if (timer_duration_value != '' and timer_duration_value != none) else skip }}
 
-    # === HANDLE TIMER BECOMING ACTIVE (TURN LIGHTS ON) ===
-    - conditions:
-        - condition: trigger
-          id: timer_active
-        - condition: and
-          conditions: !input turn_on_conditions
-      sequence:
-        - action: light.turn_on
-          target: !input lights
+      - conditions:
+          - condition: trigger
+            id: timer_active
+          - condition: and
+            conditions: !input turn_on_conditions
+        sequence:
+          - action: light.turn_on
+            target: !input lights
 
-    # === HANDLE TIMER BECOMING IDLE (TURN LIGHTS OFF) ===
-    - conditions:
-        - condition: trigger
-          id: timer_idle
-        - condition: and
-          conditions: !input turn_off_conditions
-      sequence:
-        - action: light.turn_off
-          target: !input lights
+      - conditions:
+          - condition: trigger
+            id: timer_idle
+          - condition: and
+            conditions: !input turn_off_conditions
+        sequence:
+          - action: light.turn_off
+            target: !input lights
