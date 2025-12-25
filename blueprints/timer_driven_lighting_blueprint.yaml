@@ -1,19 +1,11 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.07.07.11.22)
+  name: Timer-Based Lighting Automation (v2025.12.24.20.17)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
     min_version: 2025.1.0
   description: >
     Automatically controls lights based on a timer and trigger entities.
-    
-    **How it works:**
-    - Timer starts when any trigger entity matches specified states
-    - Lights turn ON when timer becomes active
-    - Lights turn OFF when timer goes idle
-    - Optional retry mechanism ensures lights turn off properly
-    
-    **Perfect for:** Motion sensors, door contacts, presence detection, etc.
   domain: automation
   input:
     # === REQUIRED SETTINGS ===
@@ -55,36 +47,6 @@ blueprint:
       selector:
         duration:
 
-    # === RETRY SETTINGS ===
-    enable_retry:
-      name: Enable Light Off Retry
-      description: Automatically retry turning off lights if they're still on after the timer expires
-      default: false
-      selector:
-        boolean:
-
-    first_retry_delay:
-      name: First Retry Delay
-      description: Minutes to wait before first retry attempt
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 30
-          unit_of_measurement: minutes
-          mode: slider
-
-    second_retry_delay:
-      name: Second Retry Delay
-      description: Minutes to wait before second retry attempt (from timer idle)
-      default: 10
-      selector:
-        number:
-          min: 2
-          max: 60
-          unit_of_measurement: minutes
-          mode: slider
-
     # === CONDITION SETTINGS ===
     global_conditions:
       name: Global Conditions (Optional)
@@ -114,9 +76,6 @@ variables:
   trigger_states_list: >
     {{ (trigger_states_input | string).split(',') | map('trim') | list }}
   timer_duration_value: !input timer_duration
-  enable_retry_value: !input enable_retry
-  first_retry_minutes: !input first_retry_delay
-  second_retry_minutes: !input second_retry_delay
 
 trigger:
   - platform: state
@@ -154,12 +113,12 @@ action:
                   value_template: >
                     {{ timer_duration_value != '' and timer_duration_value != none }}
               sequence:
-                - service: timer.start
+                - action: timer.start
                   data:
                     entity_id: !input timer_entity
                     duration: !input timer_duration
           default:
-            - service: timer.start
+            - action: timer.start
               data:
                 entity_id: !input timer_entity
 
@@ -170,7 +129,7 @@ action:
         - condition: and
           conditions: !input turn_on_conditions
       sequence:
-        - service: light.turn_on
+        - action: light.turn_on
           target: !input lights
 
     # === HANDLE TIMER BECOMING IDLE (TURN LIGHTS OFF) ===
@@ -180,27 +139,5 @@ action:
         - condition: and
           conditions: !input turn_off_conditions
       sequence:
-        - service: light.turn_off
+        - action: light.turn_off
           target: !input lights
-        
-        # === RETRY LOGIC ===
-        - if:
-            - condition: template
-              value_template: "{{ enable_retry_value }}"
-          then:
-            - sequence:
-                # First retry
-                - delay:
-                    minutes: "{{ first_retry_minutes }}"
-                - service: light.turn_off
-                  target: !input lights
-                
-                # Second retry (only if second delay is greater than first)
-                - if:
-                    - condition: template
-                      value_template: "{{ second_retry_minutes > first_retry_minutes }}"
-                  then:
-                    - delay:
-                        minutes: "{{ second_retry_minutes - first_retry_minutes }}"
-                    - service: light.turn_off
-                      target: !input lights
