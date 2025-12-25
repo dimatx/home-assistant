@@ -6,50 +6,66 @@ blueprint:
     min_version: 2025.1.0
   description: >
     Automatically controls lights based on a timer and trigger entities.
-    Supports targeting by Entities, Devices, Areas, and Labels.
+    Compatible with Entities, Devices, Areas, and Labels.
   domain: automation
   input:
-    timer_entity:
-      name: Timer Entity
-      selector:
-        entity:
-          domain: timer
-    lights:
-      name: Lights to Control
-      selector:
-        target:
-          entity:
-            domain: light
-    trigger_entities:
-      name: Trigger Entities
-      selector:
-        entity:
-          multiple: true
-    trigger_states:
-      name: Trigger States
-      default: "on"
-      selector:
-        text:
-    timer_duration:
-      name: Timer Duration (Optional)
-      default: ""
-      selector:
-        duration:
-    global_conditions:
-      name: Global Conditions (Optional)
-      default: []
-      selector:
-        condition:
-    turn_on_conditions:
-      name: Turn ON Conditions (Optional)
-      default: []
-      selector:
-        condition:
-    turn_off_conditions:
-      name: Turn OFF Conditions (Optional)
-      default: []
-      selector:
-        condition:
+    primary_settings:
+      name: Primary Configuration
+      icon: mdi:star
+      collapsed: false
+      input:
+        timer_entity:
+          name: Timer Entity
+          selector:
+            entity:
+              domain: timer
+        lights:
+          name: Lights to Control
+          selector:
+            target:
+              entity:
+                domain: light
+        trigger_entities:
+          name: Trigger Entities
+          selector:
+            entity:
+              multiple: true
+        trigger_states:
+          name: Trigger States
+          default: "on"
+          selector:
+            text:
+    logic_settings:
+      name: Logic & Timing
+      icon: mdi:tune
+      collapsed: false
+      input:
+        timer_duration:
+          name: Timer Duration (Optional)
+          description: "Leave empty to use the timer helper's default duration."
+          default: ""
+          selector:
+            duration:
+    condition_settings:
+      name: Conditions
+      icon: mdi:filter-variant
+      collapsed: true
+      input:
+        global_conditions:
+          name: Global Conditions
+          default: []
+          selector:
+            condition:
+        turn_on_conditions:
+          name: Turn ON Conditions
+          default: []
+          selector:
+            condition:
+        turn_off_conditions:
+          name: Turn OFF Conditions
+          default: []
+          selector:
+            condition:
 
 mode: restart
 
@@ -78,20 +94,30 @@ condition:
 
 action:
   - choose:
-      # Start/Restart Timer on activity
+      # 1. Start/Restart Timer on activity
       - conditions:
           - condition: trigger
             id: entity_triggered
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
         sequence:
-          - action: timer.start
-            data:
-              entity_id: !input timer_entity
-              duration: >
-                {{ timer_duration_value if (timer_duration_value != '' and timer_duration_value != none) else skip }}
+          - choose:
+              # Use the override duration if it's set
+              - conditions:
+                  - condition: template
+                    value_template: "{{ timer_duration_value != '' and timer_duration_value != none }}"
+                sequence:
+                  - action: timer.start
+                    data:
+                      entity_id: !input timer_entity
+                      duration: !input timer_duration
+            default:
+              # Otherwise, start the timer with its own internal default
+              - action: timer.start
+                data:
+                  entity_id: !input timer_entity
 
-      # Turn Lights ON
+      # 2. Turn Lights ON
       - conditions:
           - condition: trigger
             id: timer_active
@@ -101,7 +127,7 @@ action:
           - action: light.turn_on
             target: !input lights
 
-      # Turn Lights OFF
+      # 3. Turn Lights OFF
       - conditions:
           - condition: trigger
             id: timer_idle
