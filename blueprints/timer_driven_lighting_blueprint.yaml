@@ -16,22 +16,26 @@ blueprint:
       input:
         timer_entity:
           name: Timer Entity
+          description: The timer helper that tracks the duration for the lights to stay on.
           selector:
             entity:
               domain: timer
         lights:
           name: Lights to Control
+          description: The lights, areas, devices, or labels to manage.
           selector:
             target:
               entity:
                 domain: light
         trigger_entities:
           name: Trigger Entities
+          description: Sensors or entities (e.g., motion sensors, door sensors) that trigger the timer.
           selector:
             entity:
               multiple: true
         trigger_states:
           name: Trigger States
+          description: Comma-separated list of states that trigger the timer (e.g., 'on, open'). Defaults to 'on'.
           default: "on"
           selector:
             text:
@@ -42,16 +46,19 @@ blueprint:
       input:
         global_conditions:
           name: Global Conditions
+          description: Conditions that must be met for ANY action (turn on or off) to run.
           default: []
           selector:
             condition:
         turn_on_conditions:
           name: Turn ON Conditions
+          description: Additional conditions that must be met specifically to turn the lights ON.
           default: []
           selector:
             condition:
         turn_off_conditions:
           name: Turn OFF Conditions
+          description: Additional conditions that must be met specifically to turn the lights OFF.
           default: []
           selector:
             condition:
@@ -62,7 +69,7 @@ blueprint:
       input:
         timer_duration:
           name: Timer Duration (Optional)
-          description: "Leave empty to use the timer helper's default duration."
+          description: "If specified, this duration overrides the default duration configured in the timer helper."
           default: ""
           selector:
             duration:
