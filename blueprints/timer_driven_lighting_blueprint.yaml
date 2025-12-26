@@ -1,13 +1,12 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.12.26.15.30)
+  name: Timer-Based Lighting Automation (v2025.12.26.15.32)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
     min_version: 2025.1.0
   description: >
     Turn on lights based on a trigger (e.g., motion) and keep them on using a Timer helper.
-    The timer restarts with each new trigger event, but ONLY if the new duration is longer than the remaining time.
-    Lights turn off when the timer finishes.
+    The timer restarts with each new trigger event. Lights turn off when the timer finishes.
     Supports optional conditions for turning on/off and works with Lights, Areas, Devices, and Labels.
   domain: automation
   input:
@@ -79,7 +78,8 @@ blueprint:
 mode: restart
 
 variables:
-  timer_entity_id: !input timer_entity
+  # Using variables is the safest way to pass inputs into templates to avoid import errors
+  timer_entity_var: !input timer_entity
   trigger_states_input: !input trigger_states
   trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
   timer_duration_value: !input timer_duration
@@ -110,32 +110,24 @@ action:
             id: entity_triggered
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
-          # --- NEW SMART LOGIC ---
-          # Only restart if timer is idle OR the new duration would expire LATER than the current one.
+          # Smart Logic: Only restart if idle OR if the new duration is longer than the remaining time.
           - condition: template
             value_template: >
-              {% set t = timer_entity_id %}
+              {% set t = timer_entity_var %}
               {% if states(t) == 'idle' %}
                 true
               {% else %}
                 {% set desired = timer_duration_value if timer_duration_value else state_attr(t, 'duration') %}
-                {% set remaining = state_attr(t, 'finishes_at') %}
-                {{ as_timedelta(desired).total_seconds() > (as_timestamp(remaining) - as_timestamp(now())) if remaining else true }}
+                {% set finish = state_attr(t, 'finishes_at') %}
+                {% set remaining = (as_timestamp(finish) - as_timestamp(now())) if finish else 0 %}
+                {{ as_timedelta(desired | string).total_seconds() > remaining }}
               {% endif %}
-      sequence:
-        - choose:
-            - conditions:
-                - condition: template
-                  value_template: "{{ timer_duration_value != '' and timer_duration_value != none }}"
-              sequence:
-                - action: timer.start
-                  data:
-                    entity_id: !input timer_entity
-                    duration: !input timer_duration
-          default:
-            - action: timer.start
-              data:
-                entity_id: !input timer_entity
+        sequence:
+          # Using a service call (action) with dynamic data is safer for blueprint importing
+          - action: timer.start
+            data:
+              entity_id: !input timer_entity
+              duration: "{{ timer_duration_value if (timer_duration_value != '' and timer_duration_value != none) else skip }}"
 
       # 2. Turn Lights ON
       - conditions:
