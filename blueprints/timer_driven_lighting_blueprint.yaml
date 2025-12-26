@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.12.26.15.34)
+  name: Timer-Based Lighting Automation (v2025.12.25.17.56)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -78,7 +78,6 @@ blueprint:
 mode: restart
 
 variables:
-  timer_entity_id: !input timer_entity
   trigger_states_input: !input trigger_states
   trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
   timer_duration_value: !input timer_duration
@@ -109,20 +108,9 @@ action:
             id: entity_triggered
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
-          # Smart Logic: Restart only if idle OR if the new duration is longer than the remaining time.
-          - condition: template
-            value_template: >
-              {% set t = timer_entity_id %}
-              {% if states(t) == 'idle' %}
-                true
-              {% else %}
-                {% set d = timer_duration_value if timer_duration_value else state_attr(t, 'duration') %}
-                {% set f = state_attr(t, 'finishes_at') %}
-                {% set r = (as_timestamp(f) - as_timestamp(now())) if f else 0 %}
-                {{ as_timedelta(d | string).total_seconds() > r }}
-              {% endif %}
         sequence:
           - choose:
+              # Use the override duration if it's set
               - conditions:
                   - condition: template
                     value_template: "{{ timer_duration_value != '' and timer_duration_value != none }}"
@@ -132,6 +120,7 @@ action:
                       entity_id: !input timer_entity
                       duration: !input timer_duration
             default:
+              # Otherwise, start the timer with its own internal default
               - action: timer.start
                 data:
                   entity_id: !input timer_entity
