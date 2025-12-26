@@ -1,55 +1,66 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.12.26.16.00)
+  name: Timer-Based Lighting Automation (v2025.12.26.15.30)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
     min_version: 2025.1.0
   description: >
-    Logic: Restart the timer ONLY if the new duration would result in a 
-    later expiration time than what is currently set.
+    Turn on lights based on a trigger (e.g., motion) and keep them on using a Timer helper.
+    The timer restarts with each new trigger event, but ONLY if the new duration is longer than the remaining time.
+    Lights turn off when the timer finishes.
+    Supports optional conditions for turning on/off and works with Lights, Areas, Devices, and Labels.
   domain: automation
   input:
     configuration:
       name: Configuration
       icon: mdi:cogs
+      collapsed: false
       input:
         timer_entity:
           name: Timer Entity
+          description: The timer helper that tracks the duration for the lights to stay on.
           selector:
             entity:
               domain: timer
         lights:
           name: Lights to Control
+          description: The lights, areas, devices, or labels to manage.
           selector:
             target:
               entity:
                 domain: light
         trigger_entities:
           name: Trigger Entities
+          description: Sensors or entities (e.g., motion sensors, door sensors) that trigger the timer.
           selector:
             entity:
               multiple: true
         trigger_states:
           name: Trigger States
+          description: Comma-separated list of states that trigger the timer (e.g., 'on, open'). Defaults to 'on'.
           default: "on"
           selector:
             text:
     condition_settings:
       name: Conditions
       icon: mdi:filter-variant
+      collapsed: false
       input:
         global_conditions:
           name: Global Conditions
+          description: Conditions that must be met for ANY action (turn on or off) to run.
           default: []
           selector:
             condition:
         turn_on_conditions:
           name: Turn ON Conditions
+          description: Additional conditions that must be met specifically to turn the lights ON.
           default: []
           selector:
             condition:
         turn_off_conditions:
           name: Turn OFF Conditions
+          description: Additional conditions that must be met specifically to turn the lights OFF.
           default: []
           selector:
             condition:
@@ -60,6 +71,7 @@ blueprint:
       input:
         timer_duration:
           name: Timer Duration (Optional)
+          description: "If specified, this duration overrides the default duration configured in the timer helper."
           default: ""
           selector:
             duration:
@@ -92,13 +104,14 @@ condition:
 
 action:
   - choose:
-      # --- TRIGGER LOGIC ---
+      # 1. Start/Restart Timer on activity
       - conditions:
           - condition: trigger
             id: entity_triggered
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
-          # Only restart if the timer is idle OR the new duration is longer than the remaining time
+          # --- NEW SMART LOGIC ---
+          # Only restart if timer is idle OR the new duration would expire LATER than the current one.
           - condition: template
             value_template: >
               {% set t = timer_entity_id %}
@@ -109,13 +122,22 @@ action:
                 {% set remaining = state_attr(t, 'finishes_at') %}
                 {{ as_timedelta(desired).total_seconds() > (as_timestamp(remaining) - as_timestamp(now())) if remaining else true }}
               {% endif %}
-        sequence:
-          - action: timer.start
-            data:
-              entity_id: !input timer_entity
-              duration: "{{ timer_duration_value if timer_duration_value else skip }}"
+      sequence:
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ timer_duration_value != '' and timer_duration_value != none }}"
+              sequence:
+                - action: timer.start
+                  data:
+                    entity_id: !input timer_entity
+                    duration: !input timer_duration
+          default:
+            - action: timer.start
+              data:
+                entity_id: !input timer_entity
 
-      # --- LIGHTS ON ---
+      # 2. Turn Lights ON
       - conditions:
           - condition: trigger
             id: timer_active
@@ -125,7 +147,7 @@ action:
           - action: light.turn_on
             target: !input lights
 
-      # --- LIGHTS OFF ---
+      # 3. Turn Lights OFF
       - conditions:
           - condition: trigger
             id: timer_idle
