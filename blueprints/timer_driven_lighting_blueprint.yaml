@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.12.25.17.56)
+  name: Timer-Based Lighting Automation (v2025.12.30.11.31)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -88,30 +88,37 @@ trigger:
     from: idle
     to: active
     id: timer_active
+    alias: "Timer started (Active)"
   - platform: state
     entity_id: !input timer_entity
     to: idle
     id: timer_idle
+    alias: "Timer finished (Idle)"
   - platform: state
     entity_id: !input trigger_entities
     id: entity_triggered
+    alias: "Activity sensor triggered"
 
 condition:
   - condition: and
     conditions: !input global_conditions
+    alias: "Check Global Conditions"
 
 action:
   - choose:
       # 1. Start/Restart Timer on activity
-      - conditions:
+      - alias: "Activity detected: Start/Restart Timer"
+        conditions:
           - condition: trigger
             id: entity_triggered
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
+            alias: "Check if state matches Trigger States"
         sequence:
           - choose:
               # Use the override duration if it's set
-              - conditions:
+              - alias: "Use Override Duration"
+                conditions:
                   - condition: template
                     value_template: "{{ timer_duration_value != '' and timer_duration_value != none }}"
                 sequence:
@@ -119,28 +126,33 @@ action:
                     data:
                       entity_id: !input timer_entity
                       duration: !input timer_duration
-            default:
-              # Otherwise, start the timer with its own internal default
-              - action: timer.start
-                data:
-                  entity_id: !input timer_entity
+              - alias: "Use Timer Default Duration"
+                conditions: []
+                sequence:
+                  - action: timer.start
+                    data:
+                      entity_id: !input timer_entity
 
       # 2. Turn Lights ON
-      - conditions:
+      - alias: "Timer Active: Turn Lights ON"
+        conditions:
           - condition: trigger
             id: timer_active
           - condition: and
             conditions: !input turn_on_conditions
+            alias: "Check Turn ON Conditions"
         sequence:
           - action: light.turn_on
             target: !input lights
 
       # 3. Turn Lights OFF
-      - conditions:
+      - alias: "Timer Idle: Turn Lights OFF"
+        conditions:
           - condition: trigger
             id: timer_idle
           - condition: and
             conditions: !input turn_off_conditions
+            alias: "Check Turn OFF Conditions"
         sequence:
           - action: light.turn_off
             target: !input lights
