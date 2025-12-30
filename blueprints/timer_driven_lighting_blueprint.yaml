@@ -156,3 +156,20 @@ action:
         sequence:
           - action: light.turn_off
             target: !input lights
+
+      # 4. Turn Lights OFF when trigger entity changes and timer is already idle
+      # This handles the case where the timer expired but lights stayed ON due to a condition (e.g. occupancy),
+      # and now that condition has cleared.
+      - alias: "Activity detected & Timer Idle: Turn Lights OFF"
+        conditions:
+          - condition: trigger
+            id: entity_triggered
+          - condition: state
+            entity_id: !input timer_entity
+            state: idle
+          - condition: and
+            conditions: !input turn_off_conditions
+            alias: "Check Turn OFF Conditions"
+        sequence:
+          - action: light.turn_off
+            target: !input lights
