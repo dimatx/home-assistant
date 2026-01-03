@@ -74,6 +74,12 @@ blueprint:
           default: ""
           selector:
             duration:
+        debug_mode:
+          name: Debug Mode
+          description: "If enabled, debug information will be logged to the system log."
+          default: false
+          selector:
+            boolean:
 
 mode: restart
 
@@ -81,6 +87,7 @@ variables:
   trigger_states_input: !input trigger_states
   trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
   timer_duration_value: !input timer_duration
+  debug_mode: !input debug_mode
 
 trigger:
   - platform: state
@@ -105,6 +112,15 @@ condition:
     alias: "Check Global Conditions"
 
 action:
+  - if:
+      - condition: template
+        value_template: "{{ debug_mode }}"
+    then:
+      - action: system_log.write
+        data:
+          message: "Blueprint Debug: Triggered by {{ trigger.id if trigger else 'unknown' }}. Trigger data: {{ trigger }}"
+          level: info
+          logger: blueprints.timer_driven_lighting
   - choose:
       # 1. Start/Restart Timer on activity
       - alias: "Activity detected: Start/Restart Timer"
