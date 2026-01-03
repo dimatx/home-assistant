@@ -1,14 +1,18 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2025.12.30.12.26)
-  author: Dima Tokar
+  name: Timer-Based Lighting Automation (v2026.01.02.09.10)
+author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
     min_version: 2025.1.0
   description: >
-    Turn on lights based on a trigger (e.g., motion) and keep them on using a Timer helper.
-    The timer restarts with each new trigger event. Lights turn off when the timer finishes.
-    Supports optional conditions for turning on/off and works with Lights, Areas, Devices, and Labels.
+    Advanced lighting automation that uses a Timer helper. 
+    Includes logic to prevent "stuck on" states when occupancy clears after a timer expires,
+    increased trace history, and optional debug logging.
   domain: automation
+
+# Override default trace limit to 15 for better troubleshooting
+stored_traces: 15
+
   input:
     configuration:
       name: Configuration
@@ -30,13 +34,13 @@ blueprint:
                 domain: light
         trigger_entities:
           name: Trigger Entities
-          description: Sensors or entities (e.g., motion sensors, door sensors) that trigger the timer.
+          description: Sensors or entities that trigger the timer.
           selector:
             entity:
               multiple: true
         trigger_states:
           name: Trigger States
-          description: Comma-separated list of states that trigger the timer (e.g., 'on, open'). Defaults to 'on'.
+          description: Comma-separated list of states that trigger the timer (e.g., 'on, open').
           default: "on"
           selector:
             text:
@@ -47,19 +51,19 @@ blueprint:
       input:
         global_conditions:
           name: Global Conditions
-          description: Conditions that must be met for ANY action (turn on or off) to run.
+          description: Conditions that must be met for ANY action to run.
           default: []
           selector:
             condition:
         turn_on_conditions:
           name: Turn ON Conditions
-          description: Additional conditions that must be met specifically to turn the lights ON.
+          description: Additional conditions specifically to turn the lights ON.
           default: []
           selector:
             condition:
         turn_off_conditions:
           name: Turn OFF Conditions
-          description: Additional conditions that must be met specifically to turn the lights OFF. In order for the automation to retrigger when the OFF condition is no longer blocking, it must also be listed as a trigger entity.
+          description: Additional conditions specifically to turn the lights OFF.
           default: []
           selector:
             condition:
@@ -70,10 +74,16 @@ blueprint:
       input:
         timer_duration:
           name: Timer Duration (Optional)
-          description: "If specified, this duration overrides the default duration configured in the timer helper."
+          description: "Overrides the default duration in the timer helper."
           default: ""
           selector:
             duration:
+        debug_mode:
+          name: Enable Debug Mode
+          description: "Logs logic decisions to the Logbook. Does not affect performance."
+          default: false
+          selector:
+            boolean:
 
 mode: restart
 
@@ -81,6 +91,7 @@ variables:
   trigger_states_input: !input trigger_states
   trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
   timer_duration_value: !input timer_duration
+  debug_enabled: !input debug_mode
 
 trigger:
   - platform: state
@@ -105,6 +116,16 @@ condition:
     alias: "Check Global Conditions"
 
 action:
+  # Initial Debug Logging - Fired only if Debug Mode is ON
+  - if:
+      - condition: template
+        value_template: "{{ debug_enabled }}"
+    then:
+      - action: logbook.log
+        data:
+          name: "Debug: {{ this.entity_id }}"
+          message: "Triggered by {{ trigger.to_state.entity_id if trigger.to_state is defined else 'Timer' }} transitioning to {{ trigger.to_state.state if trigger.to_state is defined else 'Idle' }}"
+
   - choose:
       # 1. Start/Restart Timer on activity
       - alias: "Activity detected: Start/Restart Timer"
@@ -116,7 +137,6 @@ action:
             alias: "Check if state matches Trigger States"
         sequence:
           - choose:
-              # Use the override duration if it's set
               - alias: "Use Override Duration"
                 conditions:
                   - condition: template
@@ -158,8 +178,6 @@ action:
             target: !input lights
 
       # 4. Turn Lights OFF when trigger entity changes and timer is already idle
-      # This handles the case where the timer expired but lights stayed ON due to a condition (e.g. occupancy),
-      # and now that condition has cleared.
       - alias: "Activity detected & Timer Idle: Turn Lights OFF"
         conditions:
           - condition: trigger
