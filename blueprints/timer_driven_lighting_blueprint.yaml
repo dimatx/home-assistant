@@ -5,14 +5,10 @@ blueprint:
   homeassistant:
     min_version: 2025.1.0
   description: >
-    Advanced lighting automation that uses a Timer helper. 
-    Includes logic to prevent "stuck on" states when occupancy clears after a timer expires,
-    increased trace history, and optional debug logging.
+    Turn on lights based on a trigger (e.g., motion) and keep them on using a Timer helper.
+    The timer restarts with each new trigger event. Lights turn off when the timer finishes.
+    Supports optional conditions for turning on/off and works with Lights, Areas, Devices, and Labels.
   domain: automation
-
-# Override default trace limit to 15 for better troubleshooting
-stored_traces: 15
-
   input:
     configuration:
       name: Configuration
@@ -34,13 +30,13 @@ stored_traces: 15
                 domain: light
         trigger_entities:
           name: Trigger Entities
-          description: Sensors or entities that trigger the timer.
+          description: Sensors or entities (e.g., motion sensors, door sensors) that trigger the timer.
           selector:
             entity:
               multiple: true
         trigger_states:
           name: Trigger States
-          description: Comma-separated list of states that trigger the timer (e.g., 'on, open').
+          description: Comma-separated list of states that trigger the timer (e.g., 'on, open'). Defaults to 'on'.
           default: "on"
           selector:
             text:
@@ -51,19 +47,19 @@ stored_traces: 15
       input:
         global_conditions:
           name: Global Conditions
-          description: Conditions that must be met for ANY action to run.
+          description: Conditions that must be met for ANY action (turn on or off) to run.
           default: []
           selector:
             condition:
         turn_on_conditions:
           name: Turn ON Conditions
-          description: Additional conditions specifically to turn the lights ON.
+          description: Additional conditions that must be met specifically to turn the lights ON.
           default: []
           selector:
             condition:
         turn_off_conditions:
           name: Turn OFF Conditions
-          description: Additional conditions specifically to turn the lights OFF.
+          description: Additional conditions that must be met specifically to turn the lights OFF.
           default: []
           selector:
             condition:
@@ -74,13 +70,13 @@ stored_traces: 15
       input:
         timer_duration:
           name: Timer Duration (Optional)
-          description: "Overrides the default duration in the timer helper."
+          description: "If specified, this duration overrides the default duration configured in the timer helper."
           default: ""
           selector:
             duration:
         debug_mode:
           name: Enable Debug Mode
-          description: "Logs logic decisions to the Logbook. Does not affect performance."
+          description: "When enabled, logic decisions will be logged to the Logbook for easier troubleshooting."
           default: false
           selector:
             boolean:
@@ -116,7 +112,7 @@ condition:
     alias: "Check Global Conditions"
 
 action:
-  # Initial Debug Logging - Fired only if Debug Mode is ON
+  # Initial Debug Logging
   - if:
       - condition: template
         value_template: "{{ debug_enabled }}"
