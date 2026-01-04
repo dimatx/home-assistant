@@ -130,6 +130,15 @@ action:
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
             alias: "Check if state matches Trigger States"
+          # Only start timer if it's already active OR turn_on_conditions are met.
+          # Note: global_conditions are already checked at the automation top-level.
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: !input timer_entity
+                state: active
+              - condition: and
+                conditions: !input turn_on_conditions
         sequence:
           - choose:
               # Use the override duration if it's set
