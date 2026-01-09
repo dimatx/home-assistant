@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2026.01.08.01.00)
+  name: Timer-Based Lighting Automation (v2026.01.08.19.58)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -76,11 +76,19 @@ blueprint:
           selector:
             duration:
         restart_on_light_on:
-          name: Restart Timer on Light Turn-On
-          description: "If enabled, the timer will restart whenever any controlled light is turned on (manually or by other automations). This prevents lights from staying on indefinitely."
+          name: Restart Timer on Light On
+          description: "If enabled, the timer will restart whenever any of the monitored lights (below) is turned on (manually or by other automations)."
           default: false
           selector:
             boolean:
+        restart_on_light_on_entities:
+          name: Lights to Monitor
+          description: "Specify which light entities should restart the timer when turned on. Only used if 'Restart Timer on Light On' is enabled."
+          default: []
+          selector:
+            entity:
+              domain: light
+              multiple: true
         debug_mode:
           name: Debug Mode
           description: "If enabled, debug information will be logged to the system log."
@@ -114,7 +122,7 @@ trigger:
     id: entity_triggered
     alias: "Activity sensor triggered"
   - platform: state
-    entity_id: !input lights
+    entity_id: !input restart_on_light_on_entities
     from: "off"
     to: "on"
     id: light_turned_on
