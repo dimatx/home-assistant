@@ -41,6 +41,16 @@ blueprint:
           default: "on"
           selector:
             text:
+        light_off_transition:
+          name: Light Time Off Transition
+          description: Brightness off transition duration
+          default: 60
+          selector:
+            number:
+              min: 0
+              max: 120
+              step: 1
+              unit_of_measurement: seconds
     condition_settings:
       name: Conditions
       icon: mdi:filter-variant
@@ -242,6 +252,8 @@ action:
             alias: "Check Turn OFF Conditions"
         sequence:
           - action: light.turn_off
+            data:
+              transition: !input light_off_transition
             target: !input lights
 
       # 4. Turn Lights OFF when trigger entity changes and timer is already idle
@@ -259,4 +271,6 @@ action:
             alias: "Check Turn OFF Conditions"
         sequence:
           - action: light.turn_off
+            data:
+              transition: !input light_off_transition
             target: !input lights
