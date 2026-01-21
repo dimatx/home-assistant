@@ -12,6 +12,8 @@ This repository contains Home Assistant blueprints for automations.
 
 Turn on lights based on a trigger (e.g., motion) and keep them on using a Timer helper. The timer restarts with each new trigger event. Lights turn off when the timer finishes. Optionally restart the timer when any controlled light is turned on (manually or by other automations). Supports optional conditions for turning on/off and works with Lights, Areas, Devices, and Labels.
 
+Read more about it on my blog: [https://www.dima.pm/timer-based-lighting-blueprint-for-home-assistant/](https://www.dima.pm/timer-based-lighting-blueprint-for-home-assistant/)
+
 ### Features
 
 - **Flexible Triggers**: Use motion sensors, door sensors, or any other state-based entities to trigger the automation
