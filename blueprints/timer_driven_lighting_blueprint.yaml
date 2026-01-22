@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2026.01.20.17.01)
+  name: Timer-Based Lighting Automation (v2026.01.22.17.01)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -122,11 +122,12 @@ trigger:
     to: active
     id: timer_active
     alias: "Timer started (Active)"
-  - platform: state
-    entity_id: !input timer_entity
-    to: idle
-    id: timer_idle
-    alias: "Timer finished (Idle)"
+  - trigger: event
+    event_data:
+      entity_id: !input timer_entity
+    event_type: timer.finished
+    id: timer_finished
+    alias: "Timer finished"
   - platform: state
     entity_id: !input trigger_entities
     id: entity_triggered
@@ -162,15 +163,6 @@ action:
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
             alias: "Check if state matches Trigger States"
-          # Only start timer if it's already active OR turn_on_conditions are met.
-          # Note: global_conditions are already checked at the automation top-level.
-          - condition: or
-            conditions:
-              - condition: state
-                entity_id: !input timer_entity
-                state: active
-              - condition: and
-                conditions: !input turn_on_conditions
         sequence:
           # Turn on lights FIRST if timer is idle (prevents race condition where
           # rapid triggers cancel the timer_active event before lights turn on)
@@ -178,6 +170,8 @@ action:
               - condition: state
                 entity_id: !input timer_entity
                 state: idle
+              - condition: and
+                conditions: !input turn_on_conditions
             then:
               - action: light.turn_on
                 target: !input lights
@@ -246,7 +240,7 @@ action:
       - alias: "Timer Idle: Turn Lights OFF"
         conditions:
           - condition: trigger
-            id: timer_idle
+            id: timer_finished
           - condition: and
             conditions: !input turn_off_conditions
             alias: "Check Turn OFF Conditions"
