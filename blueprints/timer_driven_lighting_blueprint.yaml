@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2026.01.13.18.38)
+  name: Timer-Based Lighting Automation (v2026.01.26.13.26)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -89,6 +89,13 @@ blueprint:
             entity:
               domain: light
               multiple: true
+        timer_only_trigger_entities:
+          name: Timer-Only Trigger Entities
+          description: "Trigger entities listed here will restart the timer but will NOT turn on lights if they're off. Useful for mmWave sensors that should only maintain lights, not activate them. These entities must also be listed in 'Trigger Entities' above."
+          default: []
+          selector:
+            entity:
+              multiple: true
         debug_mode:
           name: Debug Mode
           description: "If enabled, debug information will be logged to the system log."
@@ -103,6 +110,7 @@ variables:
   trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
   timer_duration_value: !input timer_duration
   restart_on_light_on: !input restart_on_light_on
+  timer_only_triggers: !input timer_only_trigger_entities
   debug_mode: !input debug_mode
 
 trigger:
@@ -164,10 +172,14 @@ action:
         sequence:
           # Turn on lights FIRST if timer is idle (prevents race condition where
           # rapid triggers cancel the timer_active event before lights turn on)
+          # Skip turning on lights if this trigger is in the timer-only list
           - if:
               - condition: state
                 entity_id: !input timer_entity
                 state: idle
+              - condition: template
+                value_template: "{{ trigger.entity_id not in timer_only_triggers }}"
+                alias: "Check if trigger is NOT timer-only"
             then:
               - action: light.turn_on
                 target: !input lights

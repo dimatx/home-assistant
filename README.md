@@ -4,7 +4,7 @@ This repository contains Home Assistant blueprints for automations.
 
 ## Timer-Based Lighting Automation
 
-**Version:** v2026.01.13.18.38  
+**Version:** v2026.01.26  
 **Author:** Dima Tokar  
 **Minimum Home Assistant Version:** 2025.1.0
 
@@ -19,6 +19,7 @@ Read more about it on my blog: [https://www.dima.pm/timer-based-lighting-bluepri
 - **Flexible Triggers**: Use motion sensors, door sensors, or any other state-based entities to trigger the automation
 - **Timer Helper Integration**: Leverages Home Assistant's built-in timer helper to manage light duration
 - **Automatic Restart**: Timer automatically restarts when new triggers are detected
+- **Timer-Only Triggers**: Optionally designate certain sensors to only restart the timer without turning on lights (useful for mmWave sensors that should maintain but not activate lights)
 - **Optional Manual Restart**: Configure the timer to restart when lights are turned on manually or by other automations
 - **Conditional Execution**: Support for global conditions, turn-on conditions, and turn-off conditions
 - **Multi-Target Support**: Works with individual lights, areas, devices, and labels
@@ -50,6 +51,7 @@ https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_light
 - **Timer Duration (Optional)**: If specified, this duration overrides the default duration configured in the timer helper
 - **Restart Timer on Light On**: If enabled, the timer will restart whenever any of the monitored lights is turned on (manually or by other automations)
 - **Lights to Monitor**: Specify which light entities should restart the timer when turned on (only used if "Restart Timer on Light On" is enabled)
+- **Timer-Only Trigger Entities**: Trigger entities listed here will restart the timer but will NOT turn on lights if they're off. Useful for mmWave sensors that should only maintain lights, not activate them. These entities must also be listed in 'Trigger Entities'
 - **Debug Mode**: If enabled, debug information will be logged to the system log
 
 ### Usage
@@ -77,5 +79,6 @@ https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_light
 
 - **Motion-Activated Lighting**: Turn on bathroom lights when motion is detected and keep them on for 5 minutes, restarting the timer with each motion event
 - **Occupancy-Based Lighting**: Use occupancy sensors to keep lights on while a room is occupied
+- **Hybrid Sensor Setup**: Use a PIR sensor to turn on lights and an mmWave sensor to keep them on—add the mmWave to Timer-Only Trigger Entities so it only maintains the timer without activating lights on its own
 - **Multi-Sensor Control**: Combine multiple sensors (motion + door) to control lights in an entryway
 - **Conditional Automation**: Only turn on lights during nighttime hours using time-based conditions
