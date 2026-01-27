@@ -85,6 +85,53 @@ No activity → Timer expires → Lights OFF
 
 ## 📚 Detailed Logic Reference
 
+### 🗺️ Flow Diagram
+
+```mermaid
+flowchart TD
+    subgraph Triggers["🔌 Triggers"]
+        T1["Motion/Door Sensor"]
+        T2["Timer Started"]
+        T3["Timer Finished"]
+        T4["Light Turned On"]
+    end
+
+    subgraph Conditions["🎛️ Conditions"]
+        GC{"Global<br/>Conditions"}
+        ON{"Turn ON<br/>Conditions"}
+        OFF{"Turn OFF<br/>Conditions"}
+    end
+
+    subgraph Actions["⚡ Actions"]
+        A1["Start/Restart Timer"]
+        A2["Turn ON Lights"]
+        A3["Turn OFF Lights"]
+    end
+
+    T1 --> GC
+    T2 --> GC
+    T3 --> GC
+    T4 --> GC
+
+    GC -->|Pass| B1{"Timer-Only<br/>Trigger?"}
+    GC -->|Fail| STOP1(("Stop"))
+
+    B1 -->|No| ON
+    B1 -->|Yes| A1
+    
+    ON -->|Pass| A2
+    ON -->|Fail| A1
+    A2 --> A1
+
+    T2 -.->|External Start| ON
+    
+    T3 --> OFF
+    OFF -->|Pass| A3
+    OFF -->|Fail| STOP2(("Stop"))
+
+    T4 -.->|Restart on Light On| A1
+```
+
 <details>
 <summary><b>🔌 Triggers</b></summary>
 
