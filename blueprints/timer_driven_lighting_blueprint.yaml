@@ -232,11 +232,18 @@ action:
                     data:
                       entity_id: !input timer_entity
 
-      # 2. Turn Lights ON
-      - alias: "Timer Active: Turn Lights ON"
+      # 2. Turn Lights ON (only when timer started externally)
+      # If this automation started the timer, Branch 1 already handled lights.
+      # This branch is for external timer starts (manual, scripts, etc.)
+      # We check if the timer's context.id matches the context from the automation run
+      # that started it (which would be this.context.parent_id since timer_active is a child event)
+      - alias: "Timer Active: Turn Lights ON (external start only)"
         conditions:
           - condition: trigger
             id: timer_active
+          - condition: template
+            value_template: "{{ trigger.to_state.context.id != this.context.parent_id }}"
+            alias: "Only if timer was started externally (not by this automation)"
           - condition: and
             conditions: !input turn_on_conditions
             alias: "Check Turn ON Conditions"
