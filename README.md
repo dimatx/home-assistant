@@ -89,47 +89,40 @@ No activity → Timer expires → Lights OFF
 
 ```mermaid
 flowchart TD
-    subgraph Triggers["🔌 Triggers"]
-        T1["Motion/Door Sensor"]
-        T2["Timer Started"]
-        T3["Timer Finished"]
-        T4["Light Turned On"]
-    end
+    START(("Trigger")) --> GC{"Global<br/>Conditions"}
+    GC -->|Fail| STOP(("X"))
+    GC -->|Pass| WHICH{"Which<br/>Trigger?"}
 
-    subgraph Conditions["🎛️ Conditions"]
-        GC{"Global<br/>Conditions"}
-        ON{"Turn ON<br/>Conditions"}
-        OFF{"Turn OFF<br/>Conditions"}
-    end
-
-    subgraph Actions["⚡ Actions"]
-        A1["Start/Restart Timer"]
-        A2["Turn ON Lights"]
-        A3["Turn OFF Lights"]
-    end
-
-    T1 --> GC
-    T2 --> GC
-    T3 --> GC
-    T4 --> GC
-
-    GC -->|Pass| B1{"Timer-Only<br/>Trigger?"}
-    GC -->|Fail| STOP1(("Stop"))
-
-    B1 -->|No| ON
-    B1 -->|Yes| A1
+    %% entity_triggered path
+    WHICH -->|entity_triggered| STATE{"State in<br/>trigger_states?"}
+    STATE -->|No| B4_CHECK
+    STATE -->|Yes| ACTIVE{"Timer active<br/>OR turn_on<br/>conditions?"}
+    ACTIVE -->|No| B4_CHECK{"Timer idle AND<br/>turn_off_conditions?"}
+    ACTIVE -->|Yes| IDLE{"Timer<br/>idle?"}
+    IDLE -->|No| TIMER["Restart Timer"]
+    IDLE -->|Yes| TIMERONLY{"Timer-only<br/>trigger?"}
+    TIMERONLY -->|No| LIGHTON["Turn ON Lights"] --> TIMER2["Start Timer"]
+    TIMERONLY -->|Yes| TIMER2
     
-    ON -->|Pass| A2
-    ON -->|Fail| A1
-    A2 --> A1
+    B4_CHECK -->|Yes| LIGHTOFF2["Turn OFF Lights"]
+    B4_CHECK -->|No| STOP2(("X"))
 
-    T2 -.->|External Start| ON
-    
-    T3 --> OFF
-    OFF -->|Pass| A3
-    OFF -->|Fail| STOP2(("Stop"))
+    %% timer_idle path
+    WHICH -->|timer_idle| OFFCHECK{"Turn OFF<br/>Conditions?"}
+    OFFCHECK -->|Yes| LIGHTOFF["Turn OFF Lights"]
+    OFFCHECK -->|No| STOP3(("X"))
 
-    T4 -.->|Restart on Light On| A1
+    %% timer_active path - external only
+    WHICH -->|timer_active| EXT_CHECK{"Started<br/>externally?"}
+    EXT_CHECK -->|No| STOP6(("X"))
+    EXT_CHECK -->|Yes| ONCHECK{"Turn ON<br/>Conditions?"}
+    ONCHECK -->|Yes| LIGHTON2["Turn ON Lights"]
+    ONCHECK -->|No| STOP4(("X"))
+
+    %% light_turned_on path
+    WHICH -->|light_turned_on| RESTART_CHECK{"Restart enabled<br/>AND external?"}
+    RESTART_CHECK -->|Yes| RESTART["Restart Timer"]
+    RESTART_CHECK -->|No| STOP5(("X"))
 ```
 
 <details>
