@@ -1,178 +1,145 @@
-# Home Assistant Blueprints
+# 🏠 Home Assistant Blueprints
 
-This repository contains Home Assistant blueprints for automations.
+## 💡 Timer-Based Lighting Automation
 
-## Timer-Based Lighting Automation
+> **v2026.01.26** • by Dima Tokar • Requires HA 2025.1.0+
 
-**Version:** v2026.01.26  
-**Author:** Dima Tokar  
-**Minimum Home Assistant Version:** 2025.1.0
+Motion-activated lighting with smart timer management. Lights turn on when triggered, stay on while there's activity, and turn off when the timer expires.
 
-### Description
+📖 [Read more on my blog](https://www.dima.pm/timer-based-lighting-blueprint-for-home-assistant/)
 
-Turn on lights based on a trigger (e.g., motion) and keep them on using a Timer helper. The timer restarts with each new trigger event. Lights turn off when the timer finishes. Optionally restart the timer when any controlled light is turned on (manually or by other automations). Supports optional conditions for turning on/off and works with Lights, Areas, Devices, and Labels.
+### ✨ Features
 
-Read more about it on my blog: [https://www.dima.pm/timer-based-lighting-blueprint-for-home-assistant/](https://www.dima.pm/timer-based-lighting-blueprint-for-home-assistant/)
+| Feature | Description |
+|---------|-------------|
+| 🎯 **Flexible Triggers** | Motion sensors, door sensors, or any state-based entity |
+| ⏱️ **Timer Integration** | Uses HA's built-in timer helper |
+| 🔄 **Auto-Restart** | Timer restarts with each trigger event |
+| 🎛️ **Timer-Only Mode** | Some sensors can maintain lights without activating them |
+| 🔀 **Conditions** | Global, turn-on, and turn-off conditions |
+| 🏷️ **Multi-Target** | Lights, areas, devices, and labels |
 
-### Features
-
-- **Flexible Triggers**: Use motion sensors, door sensors, or any other state-based entities to trigger the automation
-- **Timer Helper Integration**: Leverages Home Assistant's built-in timer helper to manage light duration
-- **Automatic Restart**: Timer automatically restarts when new triggers are detected
-- **Timer-Only Triggers**: Optionally designate certain sensors to only restart the timer without turning on lights (useful for mmWave sensors that should maintain but not activate lights)
-- **Optional Manual Restart**: Configure the timer to restart when lights are turned on manually or by other automations
-- **Conditional Execution**: Support for global conditions, turn-on conditions, and turn-off conditions
-- **Multi-Target Support**: Works with individual lights, areas, devices, and labels
-- **Debug Mode**: Built-in debug logging for troubleshooting
-
-### Import URL
+### 📥 Import
 
 ```
 https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
 ```
 
-### Configuration Options
+---
 
-#### Required Configuration
+### ⚙️ Configuration
 
-- **Timer Entity**: The timer helper that tracks the duration for the lights to stay on
-- **Lights to Control**: The lights, areas, devices, or labels to manage
-- **Trigger Entities**: Sensors or entities (e.g., motion sensors, door sensors) that trigger the timer
-- **Trigger States**: Comma-separated list of states that trigger the timer (e.g., 'on, open'). Defaults to 'on'
+<details>
+<summary><b>Required Settings</b></summary>
 
-#### Conditions
+- **Timer Entity** — Timer helper to track duration
+- **Lights to Control** — Target lights/areas/devices/labels
+- **Trigger Entities** — Sensors that trigger the automation
+- **Trigger States** — States that activate (default: `on`)
 
-- **Global Conditions**: Conditions that must be met for ANY action (turn on or off) to run
-- **Turn ON Conditions**: Additional conditions that must be met specifically to turn the lights ON
-- **Turn OFF Conditions**: Additional conditions that must be met specifically to turn the lights OFF
+</details>
 
-#### Other Settings
+<details>
+<summary><b>Conditions</b></summary>
 
-- **Timer Duration (Optional)**: If specified, this duration overrides the default duration configured in the timer helper
-- **Restart Timer on Light On**: If enabled, the timer will restart whenever any of the monitored lights is turned on (manually or by other automations)
-- **Lights to Monitor**: Specify which light entities should restart the timer when turned on (only used if "Restart Timer on Light On" is enabled)
-- **Timer-Only Trigger Entities**: Trigger entities listed here will restart the timer but will NOT turn on lights if they're off. Useful for mmWave sensors that should only maintain lights, not activate them. These entities must also be listed in 'Trigger Entities'
-- **Debug Mode**: If enabled, debug information will be logged to the system log
+- **Global** — Must be met for any action
+- **Turn ON** — Additional requirements to turn lights on
+- **Turn OFF** — Additional requirements to turn lights off
 
-### Usage
+</details>
 
-1. Create a Timer helper in Home Assistant (Settings > Devices & Services > Helpers > Create Helper > Timer)
-2. Import this blueprint using the URL above
-3. Create a new automation based on the blueprint
-4. Configure the required settings:
-   - Select your timer helper
-   - Choose the lights you want to control
-   - Select your trigger entities (e.g., motion sensors)
-   - Set the trigger states (default is 'on')
-5. Optionally configure conditions and other settings
-6. Save and enable the automation
+<details>
+<summary><b>Advanced Settings</b></summary>
 
-### How It Works
+- **Timer Duration** — Override the timer helper's default
+- **Restart on Light On** — Restart timer when lights are turned on externally
+- **Timer-Only Triggers** — Sensors that restart timer but don't turn on lights
+- **Debug Mode** — Log debug info for troubleshooting
 
-At a high level, this blueprint manages lights based on activity detection and a timer:
-
-1. **Activity detected** → Timer starts/restarts, lights turn on (if conditions are met)
-2. **Continued activity** → Timer keeps restarting, lights stay on
-3. **No activity** → Timer expires, lights turn off (if conditions are met)
-
-### Example Use Cases
-
-- **Motion-Activated Lighting**: Turn on bathroom lights when motion is detected and keep them on for 5 minutes, restarting the timer with each motion event
-- **Occupancy-Based Lighting**: Use occupancy sensors to keep lights on while a room is occupied
-- **Hybrid Sensor Setup**: Use a PIR sensor to turn on lights and an mmWave sensor to keep them on—add the mmWave to Timer-Only Trigger Entities so it only maintains the timer without activating lights on its own
-- **Multi-Sensor Control**: Combine multiple sensors (motion + door) to control lights in an entryway
-- **Conditional Automation**: Only turn on lights during nighttime hours using time-based conditions
+</details>
 
 ---
 
-## Detailed Logic Reference
+### 🔄 How It Works
 
-This section provides a detailed explanation of the blueprint's internal logic for advanced users and troubleshooting.
+```
+Activity detected → Timer starts → Lights ON
+       ↓
+More activity → Timer restarts → Lights stay ON
+       ↓
+No activity → Timer expires → Lights OFF
+```
 
-### Triggers
+---
 
-The automation responds to four types of events:
+### 💡 Example Use Cases
 
-| Trigger ID | Event | Description |
-|------------|-------|-------------|
-| `timer_active` | Timer goes from idle → active | Timer just started |
-| `timer_idle` | Timer goes to idle | Timer finished or was cancelled |
-| `entity_triggered` | Any trigger entity changes state | Motion detected, door opened, etc. |
-| `light_turned_on` | Monitored light turns on | External light activation (manual, other automations) |
+| Use Case | Setup |
+|----------|-------|
+| 🚿 **Bathroom** | Motion sensor + 5 min timer |
+| 🛋️ **Living Room** | PIR to turn on, mmWave (timer-only) to maintain |
+| 🚪 **Entryway** | Door + motion sensors combined |
+| 🌙 **Night-Only** | Add sunset/sunrise condition |
 
-### Action Branches
+---
 
-The automation uses a `choose` block with 5 branches, evaluated in order:
+## 📚 Detailed Logic Reference
 
-#### Branch 1: Activity Detected → Start/Restart Timer
+<details>
+<summary><b>🔌 Triggers</b></summary>
 
-**When:** `entity_triggered` fires AND state matches `trigger_states` AND (timer is already active OR `turn_on_conditions` are met)
+| Trigger ID | Event |
+|------------|-------|
+| `timer_active` | Timer started |
+| `timer_idle` | Timer finished |
+| `entity_triggered` | Sensor state changed |
+| `light_turned_on` | Monitored light turned on externally |
 
-**Actions:**
-1. If timer is idle AND trigger is NOT in `timer_only_trigger_entities` → Turn on lights
-2. Start/restart the timer
+</details>
 
-**Key behavior:** Timer-only triggers (like mmWave sensors) will restart the timer but skip the light turn-on step. This allows presence sensors to maintain lights without activating them.
+<details>
+<summary><b>🌳 Action Branches</b></summary>
 
-#### Branch 1b: Light Turned On → Restart Timer
+**Branch 1: Activity Detected**
+- Trigger matches → Turn on lights (if not timer-only) → Start timer
 
-**When:** `light_turned_on` fires AND `restart_on_light_on` is enabled AND the light was turned on externally (not by this automation)
+**Branch 1b: Light Turned On**
+- External light activation → Restart timer
 
-**Actions:** Restart the timer
+**Branch 2: Timer Started Externally**
+- Timer started by script/manual → Turn on lights
+- *Skipped when this automation started the timer*
 
-**Key behavior:** Uses context comparison to prevent self-triggering loops.
+**Branch 3: Timer Finished**
+- Timer expires + turn-off conditions met → Turn off lights
 
-#### Branch 2: Timer Active → Turn Lights ON (External Start Only)
+**Branch 4: Delayed Turn-Off**
+- Timer already idle + turn-off conditions now met → Turn off lights
+- *Catches cases where turn-off was previously blocked*
 
-**When:** `timer_active` fires AND timer was started externally (not by this automation) AND `turn_on_conditions` are met
+</details>
 
-**Actions:** Turn on lights
+<details>
+<summary><b>🎛️ Timer-Only Triggers</b></summary>
 
-**Key behavior:** This branch only fires when the timer is started by something other than this automation (e.g., manually, via script, or another automation). When Branch 1 starts the timer, it handles lights directly, so Branch 2 is skipped using context comparison (`trigger.to_state.context.id != this.context.parent_id`).
+For sensors that should **maintain** lights but not **activate** them:
 
-#### Branch 3: Timer Idle → Turn Lights OFF
+| Sensor | Recommended |
+|--------|-------------|
+| PIR motion | Normal trigger |
+| mmWave presence | Timer-only |
+| Door sensor | Normal trigger |
 
-**When:** `timer_idle` fires AND `turn_off_conditions` are met
+**Hybrid setup:** PIR turns on lights, mmWave keeps them on.
 
-**Actions:** Turn off lights
+</details>
 
-**Key behavior:** This is the primary turn-off path when the timer expires naturally.
+<details>
+<summary><b>🔗 Context-Based Self-Detection</b></summary>
 
-#### Branch 4: Activity Detected & Timer Already Idle → Turn Lights OFF
+The blueprint uses HA's context system to prevent loops:
 
-**When:** `entity_triggered` fires AND timer is already idle AND `turn_off_conditions` are met
+- Ignores lights it turned on itself
+- Skips redundant actions when it started the timer
 
-**Actions:** Turn off lights
-
-**Key behavior:** This handles edge cases where the timer expired but lights stayed on due to a blocking `turn_off_condition` (e.g., mmWave still detecting presence). When that condition clears (e.g., mmWave goes off), this branch catches the state change and turns off the lights.
-
-### Condition Types Explained
-
-| Condition Type | Scope | Example Use Case |
-|----------------|-------|------------------|
-| **Global Conditions** | All actions (on and off) | "Light automations enabled" toggle, home occupied |
-| **Turn ON Conditions** | Only light turn-on | Night time only, sleep mode off |
-| **Turn OFF Conditions** | Only light turn-off | No presence detected, not watching TV |
-
-### Timer-Only Triggers: When to Use
-
-Use `timer_only_trigger_entities` when you have sensors that should **maintain** lights but not **activate** them:
-
-| Sensor Type | Behavior | Recommended Setting |
-|-------------|----------|---------------------|
-| PIR motion sensor | Quick response, clears when no motion | Normal trigger (turns on lights) |
-| mmWave presence sensor | Detects stationary presence, may get "stuck" | Timer-only (maintains lights) |
-| Door sensor | Instant trigger on open | Normal trigger (turns on lights) |
-
-**Typical hybrid setup:**
-- PIR in `trigger_entities` → turns on lights when you enter
-- mmWave in both `trigger_entities` AND `timer_only_trigger_entities` → keeps timer running while you're present, but won't turn on lights by itself
-
-### Context-Based Self-Detection
-
-The blueprint uses Home Assistant's context system to detect when events are caused by itself vs external sources:
-
-- **Branch 1b** checks `trigger.to_state.context.id != this.context.id` to ignore lights it turned on itself
-- **Branch 2** checks `trigger.to_state.context.id != this.context.parent_id` to skip when it started the timer
-
-This prevents loops and ensures each branch only handles its intended scenarios.
+</details>
