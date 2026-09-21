@@ -2,7 +2,7 @@
 
 ## 💡 Timer-Based Lighting Automation
 
-> **v2026.01.26** • by Dima Tokar • Requires HA 2025.1.0+
+> **v2026.09.20** • by Dima Tokar • Requires HA 2025.1.0+
 
 Motion-activated lighting with smart timer management. Lights turn on when triggered, stay on while there's activity, and turn off when the timer expires.
 
@@ -94,7 +94,9 @@ flowchart TD
     GC -->|Pass| WHICH{"Which<br/>Trigger?"}
 
     %% entity_triggered path
-    WHICH -->|entity_triggered| STATE{"State in<br/>trigger_states?"}
+    WHICH -->|entity_triggered| CHANGED{"State value<br/>actually changed?"}
+    CHANGED -->|No, attribute-only| STOP7(("X"))
+    CHANGED -->|Yes| STATE{"State in<br/>trigger_states?"}
     STATE -->|No| B4_CHECK
     STATE -->|Yes| ACTIVE{"Timer active<br/>OR turn_on<br/>conditions?"}
     ACTIVE -->|No| B4_CHECK{"Timer idle AND<br/>turn_off_conditions?"}
@@ -141,7 +143,7 @@ flowchart TD
 <summary><b>🌳 Action Branches</b></summary>
 
 **Branch 1: Activity Detected**
-- Trigger matches → Turn on lights (if not timer-only) → Start timer
+- Trigger matches (real state change, not just an attribute update) → Turn on lights (if not timer-only) → Start timer
 
 **Branch 1b: Light Turned On**
 - External light activation → Restart timer
@@ -154,8 +156,17 @@ flowchart TD
 - Timer expires + turn-off conditions met → Turn off lights
 
 **Branch 4: Delayed Turn-Off**
-- Timer already idle + turn-off conditions now met → Turn off lights
+- Timer already idle + trigger entity state actually changes + turn-off conditions now met → Turn off lights
 - *Catches cases where turn-off was previously blocked*
+
+</details>
+
+<details>
+<summary><b>⚡ Reliability Notes</b></summary>
+
+- **Attribute-noise filtering**: Branches 1 and 4 ignore `entity_triggered` events where only an attribute changed (e.g. lux/battery on a multi-sensor) but the actual state value stayed the same — avoiding needless `mode: restart` cancel/restart cycles.
+- **Debug logging runs last**: the debug log step executes *after* the action `choose` block, not before, so it never adds an extra delay ahead of the time-critical light/timer actions.
+- **Consistent self-trigger detection**: Branch 1b and Branch 2 both compare `this.context.parent_id` (the context that *caused* the current run) against the triggering entity's context id, correctly skipping the redundant timer restart when this same automation caused the change itself.
 
 </details>
 
