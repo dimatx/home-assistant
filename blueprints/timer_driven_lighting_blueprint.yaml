@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2026.09.20.23.45)
+  name: Timer-Based Lighting Automation (v2026.09.20.23.55)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -208,8 +208,11 @@ action:
           - condition: template
             value_template: "{{ restart_on_light_on }}"
             alias: "Check if restart on light-on is enabled"
+          # Compare against this.context.parent_id (the context that caused this run),
+          # not this.context.id (this run's own id) -- matches the pattern used in
+          # Branch 2 below, which correctly detects internally-caused state changes.
           - condition: template
-            value_template: "{{ trigger.to_state.context.id != this.context.id }}"
+            value_template: "{{ trigger.to_state.context.id != this.context.parent_id }}"
             alias: "Prevent self-triggering (external change only)"
         sequence:
           - choose:

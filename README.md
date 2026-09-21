@@ -166,6 +166,7 @@ flowchart TD
 
 - **Attribute-noise filtering**: Branches 1 and 4 ignore `entity_triggered` events where only an attribute changed (e.g. lux/battery on a multi-sensor) but the actual state value stayed the same — avoiding needless `mode: restart` cancel/restart cycles.
 - **Debug logging runs last**: the debug log step executes *after* the action `choose` block, not before, so it never adds an extra delay ahead of the time-critical light/timer actions.
+- **Consistent self-trigger detection**: Branch 1b and Branch 2 both compare `this.context.parent_id` (the context that *caused* the current run) against the triggering entity's context id, correctly skipping the redundant timer restart when this same automation caused the change itself.
 
 </details>
 
