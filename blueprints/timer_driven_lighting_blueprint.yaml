@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2026.01.26.22.45)
+  name: Timer-Based Lighting Automation (v2026.09.20.23.45)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -142,21 +142,19 @@ condition:
     alias: "Check Global Conditions"
 
 action:
-  - if:
-      - condition: template
-        value_template: "{{ debug_mode }}"
-    then:
-      - action: system_log.write
-        data:
-          message: "Blueprint Debug: Triggered by {{ trigger.id if trigger else 'unknown' }}. Trigger data: {{ trigger }}"
-          level: info
-          logger: blueprints.timer_driven_lighting
+  # Debug logging runs AFTER the choose block below (not before), so it adds zero
+  # extra steps/yield-points ahead of the time-critical light/timer actions.
+  # This keeps the race window (mode: restart cancelling an in-flight run before its
+  # critical action dispatches) as small as possible for every branch, not just Branch 1.
   - choose:
       # 1. Start/Restart Timer on activity
       - alias: "Activity detected: Start/Restart Timer"
         conditions:
           - condition: trigger
             id: entity_triggered
+          - condition: template
+            value_template: "{{ trigger.from_state is none or trigger.from_state.state != trigger.to_state.state }}"
+            alias: "Ignore attribute-only changes (the actual state value must have changed)"
           - condition: template
             value_template: "{{ trigger.to_state.state in trigger_states_list }}"
             alias: "Check if state matches Trigger States"
@@ -270,6 +268,9 @@ action:
         conditions:
           - condition: trigger
             id: entity_triggered
+          - condition: template
+            value_template: "{{ trigger.from_state is none or trigger.from_state.state != trigger.to_state.state }}"
+            alias: "Ignore attribute-only changes (the actual state value must have changed)"
           - condition: state
             entity_id: !input timer_entity
             state: idle
@@ -279,3 +280,12 @@ action:
         sequence:
           - action: light.turn_off
             target: !input lights
+  - if:
+      - condition: template
+        value_template: "{{ debug_mode }}"
+    then:
+      - action: system_log.write
+        data:
+          message: "Blueprint Debug: Triggered by {{ trigger.id if trigger else 'unknown' }}. Trigger data: {{ trigger }}"
+          level: info
+          logger: blueprints.timer_driven_lighting
