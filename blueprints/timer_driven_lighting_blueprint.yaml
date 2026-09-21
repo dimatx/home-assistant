@@ -1,5 +1,5 @@
 blueprint:
-  name: Timer-Based Lighting Automation (v2026.09.20.23.55)
+  name: Timer-Based Lighting Automation (v2026.09.21.00.05)
   author: Dima Tokar
   source_url: https://github.com/dimatx/home-assistant/blob/main/blueprints/timer_driven_lighting_blueprint.yaml
   homeassistant:
@@ -37,10 +37,27 @@ blueprint:
               multiple: true
         trigger_states:
           name: Trigger States
-          description: Comma-separated list of states that trigger the timer (e.g., 'on, open'). Defaults to 'on'.
-          default: "on"
+          description: >-
+            States that should trigger the timer. Pick from common values or type a custom
+            one and press enter to add it. Existing automations with a comma-separated text
+            value (e.g. 'on, open') keep working unchanged after this update.
+          default:
+            - "on"
           selector:
-            text:
+            select:
+              multiple: true
+              custom_value: true
+              options:
+                - "on"
+                - "off"
+                - "open"
+                - "closed"
+                - "unlocked"
+                - "locked"
+                - "home"
+                - "not_home"
+                - "detected"
+                - "clear"
     condition_settings:
       name: Conditions
       icon: mdi:filter-variant
@@ -107,7 +124,10 @@ mode: restart
 
 variables:
   trigger_states_input: !input trigger_states
-  trigger_states_list: "{{ (trigger_states_input | string).split(',') | map('trim') | list }}"
+  # Supports both the legacy comma-separated text value (existing automations created
+  # before the Trigger States field became a multi-select) and the new list value from
+  # the multi-select/custom-value picker, so already-configured automations keep working.
+  trigger_states_list: "{{ (trigger_states_input.split(',') | map('trim') | list) if trigger_states_input is string else (trigger_states_input | map('trim') | list) }}"
   timer_duration_value: !input timer_duration
   restart_on_light_on: !input restart_on_light_on
   timer_only_triggers: !input timer_only_trigger_entities
